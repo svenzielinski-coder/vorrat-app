@@ -72,6 +72,40 @@ def matches_filters(item):
         return False
     return True
 
+st.subheader("📷 Scannen (Barcode)")
+
+img_file = st.camera_input("Barcode fotografieren")
+
+if img_file is not None:
+    img = Image.open(img_file)
+
+    try:
+        res = read_barcode(img)
+    except Exception as e:
+        st.error(f"Scan-Fehler: {e}")
+        res = None
+
+    if not res:
+        st.warning("❌ Kein Barcode erkannt. Tipp: näher ran, ruhig halten, gutes Licht.")
+    else:
+        barcode = getattr(res, "text", None) or getattr(res, "data", None) or str(res)
+        barcode = str(barcode).strip()
+
+        st.success(f"✅ Barcode erkannt: {barcode}")
+
+        # Produktname holen
+        product_name = None
+        try:
+            product_name = off_lookup(barcode)
+        except Exception:
+            product_name = None
+
+        if product_name:
+            st.info(f"Gefunden: **{product_name}**")
+            st.session_state["prefill_name"] = product_name
+        else:
+            st.info("Kein Treffer bei Open Food Facts – du kannst den Namen manuell eingeben.")
+            st.session_state["prefill_name"] = f"Barcode {barcode}"
 st.subheader("➕ Artikel hinzufügen")
 with st.form("add_item", clear_on_submit=True):
     name = st.text_input("Artikelname", placeholder="z.B. Nudeln")
