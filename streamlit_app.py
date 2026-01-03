@@ -20,6 +20,30 @@ def load_items():
     return []
 
 def save_items(items):
+    @st.cache_data(ttl=60 * 60 * 24)  # 24h Cache
+def off_lookup(barcode: str):
+    url = f"https://world.openfoodfacts.net/api/v2/product/{barcode}"
+    r = requests.get(url, timeout=10)
+    r.raise_for_status()
+    data = r.json()
+
+    # status=1 => gefunden
+    if data.get("status") != 1:
+        return None
+
+    product = data.get("product", {}) or {}
+    name = (
+        product.get("product_name_de")
+        or product.get("product_name")
+        or product.get("generic_name_de")
+        or product.get("generic_name")
+    )
+    brand = product.get("brands")
+
+    display = name.strip() if isinstance(name, str) and name.strip() else None
+    if display and brand:
+        display = f"{display} ({brand})"
+    return display
     DATA_FILE.write_text(
         json.dumps(items, indent=2, ensure_ascii=False),
         encoding="utf-8"
